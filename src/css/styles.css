@@ -179,7 +179,7 @@ button {
   width: 700px;
   text-align: center;
   align-items: center;
-  justify-content: left;
+  justify-content: center;
   border: 0px solid #a9bcd0;
   gap: 15px;
 }
@@ -190,6 +190,9 @@ button {
   border-radius: 15px;
   padding: 20px;
   width: 30%;
+  
+;
+  
 }
 .map-div2 {
   order: 2;
@@ -198,6 +201,12 @@ button {
   padding: 20px;
   width: 100%;
 }
+
+#map {
+  height: 300px;
+  width: 50%;
+}
+
 .img {
   width: 20%;
 }

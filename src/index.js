@@ -3,10 +3,19 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './css/styles.css';
 import BirdTrackerService from './js/services/bird-track-service.js';
 import GeoCall from './js/services/geoCall.js';
+import { MarkerClusterer } from "@googlemaps/markerclusterer";
+import { Loader } from "@googlemaps/js-api-loader";
 
 // Business Logic
 
 //Variables needed in more than one function
+let map;
+const google = window.google;
+const loader = new Loader({
+  apiKey: `${process.env.OTHER_MAPS_KEY}`,
+  version: "weekly"
+});
+
 let birds = [];
 let targetBirdInfo = [];
 const birdNameInputElement = document.querySelector("#birdName-input");
@@ -123,15 +132,69 @@ function displayOutput(birdOutputArray) {
   oldOutputDiv.innerText = '';
   let pTag = document.createElement('p');
   pTag.innerHTML = `<p>The species ${birdOutputArray[1]} commonly known as ${birdOutputArray[0]} has been found in the following locations:</p>`;
-  let ulText = document.createElement('ul');
-  //change this to change the number of birds
-  for (let i = 2; i < 7; i++) {
-    ulText.innerHTML = ulText.innerHTML + `<li> Location: ${birdOutputArray[i]['locName']}</li> <li> Last Seen: ${birdOutputArray[i]['obsDt']}</li> <li> Latitude: ${birdOutputArray[i]['lat']}</li> <li> Longitude: ${birdOutputArray[i]['lng']}</li><br>`;
-  }
-  oldOutputDiv.prepend(pTag);
-  oldOutputDiv.append(ulText);
-  let mapDiv = document.querySelector('div#map');
-  mapDiv.append(oldOutputDiv);
+  // let ulText = document.createElement('ul');
+  // //change this to change the number of birds
+  // for (let i = 2; i < 7; i++) {
+  //   ulText.innerHTML = ulText.innerHTML + `<li> Location: ${birdOutputArray[i]['locName']}</li> <li> Last Seen: ${birdOutputArray[i]['obsDt']}</li> <li> Latitude: ${birdOutputArray[i]['lat']}</li> <li> Longitude: ${birdOutputArray[i]['lng']}</li><br>`;
+  // }
+  // oldOutputDiv.prepend(pTag);
+  // oldOutputDiv.append(ulText);
+  // let mapDiv = document.querySelector('div#map');
+  // mapDiv.append(oldOutputDiv);
+  
+  loader.load().then(async ()=> {
+
+  const position = {lat:parseFloat(`${birdOutputArray[2]['lat']}`), lng:parseFloat(`${birdOutputArray[2]['lng']}`)};
+  const { Map } = await google.maps.importLibrary("maps");
+  const { AdvancedMarkerView } = await google.maps.importLibrary("marker");
+
+  map = new Map(document.getElementById("map"), {
+    zoom: 9,
+    center: position,
+    mapId: "DEMO_MAP_ID"
+  });
+
+  const contentString = "That bird was here at this ____ time."
+  console.log(contentString);
+
+  const infoWindow = new google.maps.InfoWindow({
+    content: contentString,
+    disableAutoPan: true
+  });
+
+  const labels = birdOutputArray
+    .filter(item => typeof item === 'object')
+    .map(item => (item.locName));
+
+  console.log(birdOutputArray);
+
+  const locations = birdOutputArray
+    .filter(item => typeof item === 'object')
+    .map(item => ({lat: item.lat, lng: item.lng}));
+
+  const markers = locations.map((position, i) => {
+    const label = labels[i % labels.length];
+    const marker = new google.maps.Marker({
+      position,
+      label,
+    });
+  
+    marker.addListener("click", () => {
+      // infoWindow.setContent(label);
+      infoWindow.open({
+        anchor: marker,
+        map
+      });
+    });
+    return marker;
+  });
+
+  new MarkerClusterer({ markers, map });
+
+  return AdvancedMarkerView;
+
+  });
+
 }
 
 function printError(error) {
@@ -171,8 +234,12 @@ function handleFormSubmission(event) {
       .then(function (location) {
         getAPIData(speciesCode, location);
       });
+      
+  
   }
 }
+
+
 
 //This is where we will need to call google map and full eBird APIs
 //maybe we can make separate calls, one possible option is below
